@@ -1,31 +1,33 @@
 import React from 'react';
 import { StyleSheet, Text, View, Button, FlatList } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import {currentDatetime, format} from './util';
+import {updateStats, calcStats, avgs} from './stats';
 
-
-function format(centis) {
-  const hours = Math.floor(centis / (100 * 60 * 60)).toString();
-  const minutes = Math.floor(centis % (100 * 60 * 60) / (100 * 60)).toString();
-  const seconds = (centis % (100 * 60) / 100).toFixed(2);
-
-  if (hours !== '0') {
-    return hours + ':' +
-    (minutes.length === 1 ? '0' : '') +
-    minutes + ':' +
-    (seconds.length === 4 ? '0' : '') +
-    seconds;
-  } else if (minutes !== '0') {
-    return minutes + ':' +
-    (seconds.length === 4 ? '0' : '') +
-    seconds;
-  } else {
-    return seconds;
+class Stats extends React.Component{
+  constructor(props) {
+    super(props);
   }
-}
 
-function currentDatetime() {
-  let d = new Date();
-  let s = d.toISOString();
-  return s.replace('T', ' ').slice(0, -2);
+  render() {
+    return <View>
+      <Text>Avg: {format(this.props.stats.avg)}</Text>
+      <Text>Solves: {this.props.stats.n}</Text>
+      <FlatList
+        data={avgs}
+        renderItem={({item}) => {if (this.props.stats.n < item){
+          return null
+        } else {
+          return <View>
+           <Text>Best{item}: {format(this.props.stats[item].best)}</Text>
+           <Text>Current{item}: {this.props.stats[item].current}</Text>
+          </View>
+        }}}
+        keyExtractor={(item, index) => item}
+        extraData={this.props.stats}
+      />
+    </View>
+  }
 }
 
 class Results extends React.Component{
@@ -41,11 +43,9 @@ class Results extends React.Component{
           renderItem={({item}) => <Text>{format(item.centis)}</Text>}
           keyExtractor={(item, index) => item.datetime}
           />
-      <Text>Res</Text>
-      <Text>2Res</Text>
+        <Text>Trololo</Text>
     </View>
   }
-
 }
 
 class Time extends React.Component {
@@ -158,7 +158,7 @@ class Timer extends React.Component {
         <View style={[styles.container,{alignItems: 'stretch'}]} onTouchStart={this.state.onTouchStart}>
           <Time saveResult={this.props.saveResult} setGlobalTouch={this.setGlobalTouch}/>
           <View style={styles.container}>
-            <Text>Scramble</Text>
+            <Stats stats={this.props.stats}></Stats>
           </View>
         </View>
       );
@@ -169,38 +169,48 @@ export default class App extends React.Component {
   constructor(props) {
     super(props);
 
-    this.saveResult = this.saveResult.bind(this);
-
-    this.timer = <Timer saveResult={this.saveResult}/>
-
     this.state = {
-      activeView: this.timer,
+      activeScreen: 'timer',
       results: [],
+      stats: calcStats([])
     }
 
-    this.results = <Results results={this.state.results}/>
-    // this.results = <View><Text>Lol</Text></View>
+    this.saveResult = this.saveResult.bind(this);
   }
 
-  saveResult(result) {
-    this.setState(previousState => ({
-      results: [...previousState.results, result]
-    }))
-    this.results = <Results results={this.state.results}/>
+  saveResult(res) {
+    this.setState(state => {
+      const allResults = [...state.results, res];
+      return {
+        stats: updateStats(state.stats, allResults),
+        results: allResults
+      }
+    });
   }
 
-  setActive(activeView) {
+  setActive(activeScreen) {
     this.setState({
-      activeView: activeView
-    })
+      activeScreen: activeScreen
+    });
   }
 
   render() {
+    let screen;
+    switch (this.state.activeScreen) {
+      case 'timer':
+        screen = <Timer saveResult={this.saveResult} stats={this.state.stats}/>
+        break;
+      case 'results':
+        screen = <Results results={[]} stats={this.stats}/>
+        break;
+      default:
+    }
+
     return <View style={styles.container}>
-      {this.state.activeView}
-      <View style={{flexDirection: 'row'}}>
-        <Text onTouchStart={() => this.setActive(this.timer)}>Timer</Text>
-        <Text onTouchStart={() => this.setActive(this.results)}>Results</Text>
+      {screen}
+      <View style={{flexDirection: 'row', height: 50}}>
+        <Icon onTouchStart={() => this.setActive('timer')} name="timer" size={30} color="#233" />
+        <Icon onTouchStart={() => this.setActive('results')} name="format-list-bulleted" size={30} color="#233" />
       </View>
     </View>
   }

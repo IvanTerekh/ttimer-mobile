@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "my-app",
-    "description": "This project is really great.",
+    "name": "ttimer",
+    "description": "Mobile client for T-timer.",
     "slug": "my-app",
     "privacy": "public",
     "sdkVersion": "31.0.0",
